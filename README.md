@@ -11,6 +11,11 @@ It's very simple technically as well:
 - **Outbound email only.**
 - **Single-tenant.**
 
+<p>
+  <a href="assets/form.png" target="_blank" rel="noopener"><img src="assets/form.png" alt="Widget contact form" width="49%"></a>
+  <a href="assets/inbox.png" target="_blank" rel="noopener"><img src="assets/inbox.png" alt="Operator inbox" width="49%"></a>
+</p>
+
 ## Quick start
 
 FreeSupp needs a public HTTP(S) URL: conversation links and the widget iframe are built from it. Operator session cookies are marked `Secure` whenever `BASE_URL` is https.
