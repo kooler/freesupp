@@ -1,12 +1,35 @@
 :root {
   --fs-accent: #2563eb;
+  --fs-on-accent: #fff;
   --fs-text: #0f172a;
   --fs-muted: #64748b;
   --fs-border: #e2e8f0;
+  --fs-bg: #fff;
   --fs-surface: #f8fafc;
+  --fs-input: #fff;
   --fs-danger: #b91c1c;
+  --fs-danger-bg: #fef2f2;
+  --fs-danger-border: #fecaca;
   --fs-radius: 10px;
   color-scheme: light;
+}
+
+/* --fs-bg is duplicated in widget.js, which paints the panel behind this
+   document while it loads. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fs-accent: #3b82f6;
+    --fs-text: #e2e8f0;
+    --fs-muted: #94a3b8;
+    --fs-border: #334155;
+    --fs-bg: #0f172a;
+    --fs-surface: #1e293b;
+    --fs-input: #1e293b;
+    --fs-danger: #fca5a5;
+    --fs-danger-bg: #2a1416;
+    --fs-danger-border: #7f1d1d;
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -22,7 +45,7 @@ body,
 body {
   margin: 0;
   color: var(--fs-text);
-  background: #fff;
+  background: var(--fs-bg);
   font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -76,7 +99,7 @@ body {
   padding: 9px 11px;
   font: inherit;
   color: inherit;
-  background: #fff;
+  background: var(--fs-input);
   border: 1px solid var(--fs-border);
   border-radius: var(--fs-radius);
   resize: vertical;
@@ -110,8 +133,8 @@ body {
   padding: 9px 11px;
   font-size: 13px;
   color: var(--fs-danger);
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--fs-danger-bg);
+  border: 1px solid var(--fs-danger-border);
   border-radius: var(--fs-radius);
 }
 
@@ -132,7 +155,7 @@ body {
   padding: 10px 16px;
   font: inherit;
   font-weight: 500;
-  color: #fff;
+  color: var(--fs-on-accent);
   background: var(--fs-accent);
   border: 0;
   border-radius: var(--fs-radius);
@@ -184,7 +207,7 @@ body {
 
 .fs-bubble--visitor {
   align-self: flex-end;
-  color: #fff;
+  color: var(--fs-on-accent);
   background: var(--fs-accent);
   border-color: var(--fs-accent);
 }
@@ -219,6 +242,8 @@ body {
   min-height: 74px;
   padding: 9px 11px;
   font: inherit;
+  color: inherit;
+  background: var(--fs-input);
   border: 1px solid var(--fs-border);
   border-radius: var(--fs-radius);
   resize: vertical;

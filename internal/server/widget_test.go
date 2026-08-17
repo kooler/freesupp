@@ -25,6 +25,10 @@ func TestWidgetJS(t *testing.T) {
 	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
 		t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, "*")
 	}
+	// A no-cors <script src> is gated on CORP, not the CORS header above.
+	if got, want := rec.Header().Get("Cross-Origin-Resource-Policy"), "cross-origin"; got != want {
+		t.Errorf("Cross-Origin-Resource-Policy = %q, want %q", got, want)
+	}
 
 	etag := rec.Header().Get("ETag")
 	if !strings.HasPrefix(etag, `"`) || !strings.HasSuffix(etag, `"`) || len(etag) < 8 {
@@ -69,11 +73,53 @@ func TestWidgetJSStaleETagServesBody(t *testing.T) {
 	}
 }
 
+func TestWidgetMark(t *testing.T) {
+	env := newTestEnv(t)
+	rec := env.do(httptest.NewRequest(http.MethodGet, "/widget-mark.png", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got, want := rec.Header().Get("Content-Type"), "image/png"; got != want {
+		t.Errorf("Content-Type = %q, want %q", got, want)
+	}
+	if got, want := rec.Header().Get("Cache-Control"), "public, max-age=3600"; got != want {
+		t.Errorf("Cache-Control = %q, want %q", got, want)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, "*")
+	}
+	// widget.js loads this as an <img> on the host page, so it needs CORP for
+	// the same reason the script does.
+	if got, want := rec.Header().Get("Cross-Origin-Resource-Policy"), "cross-origin"; got != want {
+		t.Errorf("Cross-Origin-Resource-Policy = %q, want %q", got, want)
+	}
+	if got := rec.Body.Len(); got != len(web.WidgetMark) {
+		t.Errorf("body length = %d, want %d", got, len(web.WidgetMark))
+	}
+}
+
+func TestWidgetMarkNotModified(t *testing.T) {
+	env := newTestEnv(t)
+	etag := env.do(httptest.NewRequest(http.MethodGet, "/widget-mark.png", nil)).Header().Get("ETag")
+
+	req := httptest.NewRequest(http.MethodGet, "/widget-mark.png", nil)
+	req.Header.Set("If-None-Match", etag)
+	rec := env.do(req)
+
+	if rec.Code != http.StatusNotModified {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotModified)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("body length = %d, want 0", rec.Body.Len())
+	}
+}
+
 // The script must be self-configuring: it derives its origin from its own src
 // and points the iframe at the visitor app route.
 func TestWidgetJSContent(t *testing.T) {
 	src := string(web.WidgetJS)
-	for _, want := range []string{"document.currentScript", "'/widget/'", "data-base-url"} {
+	for _, want := range []string{"document.currentScript", "'/widget/'", "'/widget-mark.png'", "data-base-url"} {
 		if !strings.Contains(src, want) {
 			t.Errorf("widget.js does not contain %q", want)
 		}

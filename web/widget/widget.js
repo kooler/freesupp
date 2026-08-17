@@ -20,16 +20,27 @@
   var PANEL_W = 380;
   var PANEL_H = 560;
   var ANIM_MS = 180;
+  var MARK_PX = 30;
+
+  // bg must match the visitor app's --fs-bg for the same scheme (its
+  // styles.css). The panel is that app's frame, so a mismatch shows as a flash
+  // of the wrong colour until the document paints.
+  var THEME = {
+    light: { bg: '#ffffff', shadow: '0 12px 40px rgba(15, 23, 42, .22)' },
+    dark: { bg: '#0f172a', shadow: '0 12px 40px rgba(0, 0, 0, .55)' }
+  };
 
   var script = currentScript();
   var base = resolveBase(script);
   var panelURL = base + '/widget/';
   var panelOrigin = originOf(panelURL);
+  var markURL = base + '/widget-mark.png';
 
   var isOpen = false;
   var loaded = false;
   var hideTimer = null;
-  var root, panel, frame, button, iconOpen, iconClose;
+  var root, panel, frame, button, mark, iconClose;
+  var darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
   onReady(init);
 
@@ -45,8 +56,7 @@
       margin: '0',
       padding: '0',
       'z-index': Z_INDEX,
-      direction: 'ltr',
-      'color-scheme': 'light'
+      direction: 'ltr'
     });
 
     panel = element('div');
@@ -58,8 +68,6 @@
       display: 'none',
       overflow: 'hidden',
       'border-radius': '14px',
-      background: '#ffffff',
-      'box-shadow': '0 12px 40px rgba(15, 23, 42, .22)',
       opacity: '0',
       transform: 'translateY(12px) scale(.98)',
       'transform-origin': 'bottom right',
@@ -74,8 +82,7 @@
       display: 'block',
       width: '100%',
       height: '100%',
-      border: '0',
-      background: '#ffffff'
+      border: '0'
     });
     panel.appendChild(frame);
 
@@ -107,10 +114,10 @@
       outline: 'none'
     });
 
-    iconOpen = icon('M4 4h16v10H7l-3 3V4z');
+    mark = markImage();
     iconClose = icon('M6 6l12 12M18 6L6 18');
     style(iconClose, { display: 'none' });
-    button.appendChild(iconOpen);
+    button.appendChild(mark);
     button.appendChild(iconClose);
 
     button.addEventListener('click', toggle);
@@ -127,13 +134,31 @@
     root.appendChild(panel);
     root.appendChild(button);
     size();
+    paint();
+    watchScheme();
     document.body.appendChild(root);
+  }
+
+  // paint applies the current colour scheme. The panel document reads the same
+  // prefers-color-scheme, so the two sides agree without exchanging a message.
+  function paint() {
+    var dark = !!(darkQuery && darkQuery.matches);
+    var theme = dark ? THEME.dark : THEME.light;
+    style(root, { 'color-scheme': dark ? 'dark' : 'light' });
+    style(panel, { background: theme.bg, 'box-shadow': theme.shadow });
+    style(frame, { background: theme.bg });
+  }
+
+  function watchScheme() {
+    if (!darkQuery) return;
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', paint);
+    else if (darkQuery.addListener) darkQuery.addListener(paint); // Safari < 14
   }
 
   function toggle() {
     isOpen = !isOpen;
     button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    style(iconOpen, { display: isOpen ? 'none' : 'block' });
+    style(mark, { display: isOpen ? 'none' : 'block' });
     style(iconClose, { display: isOpen ? 'block' : 'none' });
 
     if (hideTimer) {
@@ -171,6 +196,22 @@
     var w = Math.min(PANEL_W, Math.max(280, window.innerWidth - 40));
     var h = Math.min(PANEL_H, Math.max(320, window.innerHeight - 120));
     style(panel, { width: w + 'px', height: h + 'px' });
+  }
+
+  // The logo is a raster, so it loads from the deployment instead of being
+  // inlined here: widget.js is fetched by every host page, the mark is cached.
+  function markImage() {
+    var img = element('img');
+    img.src = markURL;
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    style(img, {
+      display: 'block',
+      width: MARK_PX + 'px',
+      height: MARK_PX + 'px',
+      'pointer-events': 'none'
+    });
+    return img;
   }
 
   function icon(path) {

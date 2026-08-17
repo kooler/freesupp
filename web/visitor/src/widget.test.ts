@@ -5,8 +5,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // widget.js has no build step and is loaded raw by every host page, so it is
 // exercised here as source evaluated into a document rather than imported.
 const source = readFileSync(resolve(import.meta.dirname, '../../widget/widget.js'), 'utf8')
+const css = readFileSync(resolve(import.meta.dirname, 'styles.css'), 'utf8')
 
 type WidgetWindow = Window & { __freesuppWidget?: boolean }
+
+/** stubScheme pins prefers-color-scheme and returns a trigger for a change. */
+function stubScheme(dark: boolean) {
+  const listeners: Array<() => void> = []
+  const list = {
+    matches: dark,
+    addEventListener: (_: string, fn: () => void) => listeners.push(fn),
+    removeEventListener: () => {},
+  }
+  vi.stubGlobal('matchMedia', () => list)
+  return {
+    set(value: boolean) {
+      list.matches = value
+      for (const fn of listeners) fn()
+    },
+  }
+}
+
+const hex = (v: string) => v.trim().replace(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i, '#$1$1$2$2$3$3')
 
 /**
  * run evaluates widget.js with document.currentScript stubbed to a script tag
@@ -28,6 +48,7 @@ function run(attrs: Record<string, string> = {}) {
     button: document.querySelector('[data-freesupp="button"]') as HTMLButtonElement | null,
     panel: document.querySelector('[data-freesupp="panel"]') as HTMLElement | null,
     frame: document.querySelector('iframe') as HTMLIFrameElement | null,
+    mark: document.querySelector('[data-freesupp="button"] img') as HTMLImageElement | null,
   }
 }
 
@@ -102,6 +123,53 @@ describe('widget.js', () => {
     w.button!.click()
     expect(w.button!.getAttribute('aria-expanded')).toBe('false')
     expect(w.panel!.style.opacity).toBe('0')
+  })
+
+  it('shows the logo mark from the same deployment as the script', () => {
+    const w = run({ src: 'https://example.com/support/widget.js' })
+    expect(w.mark!.getAttribute('src')).toBe('https://example.com/support/widget-mark.png')
+    expect(w.mark!.getAttribute('aria-hidden')).toBe('true')
+    expect(w.mark!.alt).toBe('')
+  })
+
+  it('swaps the mark for a close icon while the panel is open', () => {
+    const w = run()
+    const close = w.button!.querySelector('svg') as SVGElement
+
+    expect(w.mark!.style.display).toBe('block')
+    expect(close.style.display).toBe('none')
+
+    w.button!.click()
+    expect(w.mark!.style.display).toBe('none')
+    expect(close.style.display).toBe('block')
+  })
+
+  it('paints the panel dark when the OS asks for it', () => {
+    stubScheme(true)
+    const w = run()
+    expect(w.root!.style.getPropertyValue('color-scheme')).toBe('dark')
+    expect(w.panel!.style.background).toBe('#0f172a')
+    expect(w.frame!.style.background).toBe('#0f172a')
+  })
+
+  it('repaints when the OS scheme changes', () => {
+    const scheme = stubScheme(true)
+    const w = run()
+    scheme.set(false)
+    expect(w.root!.style.getPropertyValue('color-scheme')).toBe('light')
+    expect(w.panel!.style.background).toBe('#ffffff')
+  })
+
+  // widget.js paints the panel behind the visitor document while it loads, so
+  // its two backgrounds have to be the app's --fs-bg for the same scheme.
+  it('keeps the panel background in step with the visitor palette', () => {
+    const light = /:root\s*\{[^}]*--fs-bg:\s*([^;]+);/.exec(css)
+    const dark = /prefers-color-scheme: dark\)[^{]*\{\s*:root\s*\{[^}]*--fs-bg:\s*([^;]+);/.exec(css)
+    expect(light, 'no light --fs-bg in styles.css').not.toBeNull()
+    expect(dark, 'no dark --fs-bg in styles.css').not.toBeNull()
+
+    expect(source).toContain("light: { bg: '" + hex(light![1]) + "'")
+    expect(source).toContain("dark: { bg: '" + hex(dark![1]) + "'")
   })
 
   it('does not inject a second widget when evaluated twice', () => {

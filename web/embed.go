@@ -11,6 +11,13 @@ import (
 //go:embed widget/widget.js
 var WidgetJS []byte
 
+// WidgetMark is the logo glyph the bubble button shows, white on transparent so
+// it sits on any bubble colour. Kept out of widget.js so the script stays small
+// on every host page.
+//
+//go:embed widget/mark.png
+var WidgetMark []byte
+
 // The two Vite builds are committed so `go build` works without Node; `make
 // build` regenerates them. "all:" keeps dot-files (none today) from being
 // silently dropped.

@@ -71,16 +71,23 @@ func (a *spaApp) serveIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", indexCacheControl)
 	w.Header().Set("ETag", a.indexETag)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	a.setFrameOptions(w)
+	a.setEmbedHeaders(w)
 	http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(a.index))
 }
 
-// setFrameOptions refuses framing for the inbox. The visitor app stays
-// frameable because the widget loads it in a cross-origin iframe.
-func (a *spaApp) setFrameOptions(w http.ResponseWriter) {
+// setEmbedHeaders states how this app may be embedded: the inbox refuses
+// framing, the visitor app is what the widget loads in a cross-origin iframe.
+//
+// A cross-origin isolated host page needs both CORP and an embedder policy on
+// the frame. credentialless rather than require-corp because the panel loads
+// the Turnstile challenge from an origin that sends no CORP.
+func (a *spaApp) setEmbedHeaders(w http.ResponseWriter) {
 	if !a.frameable {
 		w.Header().Set("X-Frame-Options", "DENY")
+		return
 	}
+	w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
+	w.Header().Set("Cross-Origin-Embedder-Policy", "credentialless")
 }
 
 // serveFile answers a request for a built asset; the chi wildcard holds the
@@ -104,9 +111,9 @@ func (a *spaApp) serveFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// /inbox/index.html reaches the same shell as /, so it needs the same
-	// framing refusal — otherwise the header is one URL away from bypassed.
-	a.setFrameOptions(w)
+	// /inbox/index.html and /visitor/index.html reach the same shells as / and
+	// /widget/, so they need the same headers.
+	a.setEmbedHeaders(w)
 	if strings.HasPrefix(name, "assets/") {
 		w.Header().Set("Cache-Control", immutableCacheControl)
 	} else {

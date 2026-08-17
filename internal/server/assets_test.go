@@ -95,6 +95,36 @@ func TestSPAFramingHeaders(t *testing.T) {
 	}
 }
 
+// A cross-origin isolated host page frames the panel only with both headers.
+// credentialless, not require-corp: Turnstile's origin sends no CORP.
+func TestVisitorIsolationHeaders(t *testing.T) {
+	env := newTestEnv(t)
+
+	for _, url := range []string{"/widget/", "/widget", "/t/deadbeef", "/visitor/index.html"} {
+		t.Run(url, func(t *testing.T) {
+			rec := env.do(httptest.NewRequest(http.MethodGet, url, nil))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			if got, want := rec.Header().Get("Cross-Origin-Resource-Policy"), "cross-origin"; got != want {
+				t.Errorf("Cross-Origin-Resource-Policy = %q, want %q", got, want)
+			}
+			if got, want := rec.Header().Get("Cross-Origin-Embedder-Policy"), "credentialless"; got != want {
+				t.Errorf("Cross-Origin-Embedder-Policy = %q, want %q", got, want)
+			}
+		})
+	}
+
+	// The inbox is not embedded anywhere and must not opt in.
+	inbox := env.do(httptest.NewRequest(http.MethodGet, "/", nil))
+	if got := inbox.Header().Get("Cross-Origin-Resource-Policy"); got != "" {
+		t.Errorf("inbox Cross-Origin-Resource-Policy = %q, want it unset", got)
+	}
+	if got := inbox.Header().Get("Cross-Origin-Embedder-Policy"); got != "" {
+		t.Errorf("inbox Cross-Origin-Embedder-Policy = %q, want it unset", got)
+	}
+}
+
 func TestServeHashedAssets(t *testing.T) {
 	env := newTestEnv(t)
 

@@ -53,6 +53,7 @@ func (s *Server) routes() {
 	s.router.Use(middleware.Recoverer)
 	s.router.Get("/ping", s.handlePing)
 	s.router.Get("/widget.js", s.handleWidgetJS)
+	s.router.Get("/widget-mark.png", s.handleWidgetMark)
 
 	s.router.Post("/auth/logout", s.handleLogout)
 
