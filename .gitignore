@@ -1,0 +1,28 @@
+.docs
+.ralphex
+docs
+
+# Go
+/freesupp
+*.exe
+*.test
+*.out
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build output
+dist/
+# ...except the Vite builds, which go:embed needs at compile time so the binary
+# builds from a clean checkout without Node.
+!web/visitor/dist/
+!web/inbox/dist/
+
+# Local data
+*.db
+*.db-shm
+*.db-wal
+.env

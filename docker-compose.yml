@@ -1,0 +1,62 @@
+# FreeSupp — single-container deployment.
+#
+#   docker compose up -d
+#
+# Put a TLS-terminating reverse proxy in front of this: operator session
+# cookies are marked Secure whenever BASE_URL is https.
+services:
+  freesupp:
+    image: ghcr.io/kooler/freesupp:latest
+    # Or build from a checkout of the repo instead:
+    # build: .
+    restart: unless-stopped
+    ports:
+      # Bound to loopback: put your TLS-terminating reverse proxy in front and
+      # let it reach this port. Publishing on 0.0.0.0 exposes the visitor POST
+      # endpoints directly, which is only safe with USE_PROXY left off.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      # SQLite database lives here — back this up (plain file copy or Litestream).
+      - freesupp-data:/data
+    environment:
+      # --- required ---------------------------------------------------------
+      # Public URL of this deployment. Magic links and the widget iframe are
+      # built from it. No trailing slash.
+      BASE_URL: "https://support.example.com"
+      # Random string signing operator session cookies. Generate once, keep
+      # secret; changing it logs everyone out.  openssl rand -hex 32
+      # The server refuses to start while this is still the placeholder below.
+      SESSION_SECRET: "change-me-to-a-random-32-byte-hex-string"
+      # Operator accounts are not configured here: they live in the database.
+      # The first visit to the inbox creates the first admin, who adds everyone
+      # else under Settings → Team.
+
+      # --- optional: outbound email ----------------------------------------
+      # Without SMTP_HOST no mail is sent; message bodies are written to the
+      # container log instead (useful for a first smoke test).
+      # AWS SES works through these same variables — use its SMTP endpoint and
+      # SMTP credentials (not your AWS access keys).
+      # SMTP_HOST: "email-smtp.eu-central-1.amazonaws.com"
+      # SMTP_PORT: "587"          # 465 = implicit TLS, anything else = STARTTLS
+      # SMTP_USER: ""
+      # SMTP_PASSWORD: ""
+      # MAIL_FROM: "support@example.com"   # required once SMTP_HOST is set
+
+      # --- optional: Cloudflare Turnstile captcha ---------------------------
+      # Both must be set together; leave both empty to disable the captcha.
+      # TURNSTILE_SITE_KEY: ""
+      # TURNSTILE_SECRET: ""
+
+      # --- optional: defaults ----------------------------------------------
+      # LISTEN: ":8080"
+      # DB_PATH: "/data/freesupp.db"
+      # TZ: "UTC"
+      # Read the visitor's IP from X-Forwarded-For for rate limiting, which the
+      # loopback binding above makes safe. Without it every visitor arrives as
+      # the proxy's address and they all share one rate-limit bucket. Turn it
+      # off if you ever publish the port on 0.0.0.0, where anyone can reach the
+      # container directly and spoof the header.
+      USE_PROXY: "true"
+
+volumes:
+  freesupp-data:

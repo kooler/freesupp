@@ -1,0 +1,26 @@
+.git
+.gitignore
+.docs
+.ralphex
+docs
+
+# Rebuilt inside the image
+node_modules
+web/*/node_modules
+web/*/dist
+
+# Local artifacts
+/freesupp
+*.db
+*.db-shm
+*.db-wal
+*.exe
+*.test
+*.out
+.env
+
+Dockerfile
+.dockerignore
+docker-compose.yml
+Makefile
+README.md

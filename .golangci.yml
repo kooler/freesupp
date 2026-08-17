@@ -1,0 +1,8 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # Deferred Close on a cleanup path: nothing useful to do with the error.
+      - linters: [errcheck]
+        source: '^\s*(defer |t\.Cleanup\(func\(\) \{ ).*\.Close\(\)'
