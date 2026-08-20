@@ -12,8 +12,8 @@ It's very simple technically as well:
 - **Single-tenant.**
 
 <p>
-  <a href="assets/widget.png" target="_blank" rel="noopener"><img src="assets/widget.png" alt="Widget contact form" width="49%"></a>
-  <a href="assets/inbox.png" target="_blank" rel="noopener"><img src="assets/inbox.png" alt="Operator inbox" width="49%"></a>
+  <a href="assets/widget.png" target="_blank" rel="noopener"><img src="assets/widget.png" alt="Widget contact form" height="320"></a>
+  <a href="assets/inbox.png" target="_blank" rel="noopener"><img src="assets/inbox.png" alt="Operator inbox" height="320"></a>
 </p>
 
 ## Quick start
